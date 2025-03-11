@@ -1,3 +1,4 @@
 .venv
 .env
 teams_data.json
+initial_data.json
