@@ -2,3 +2,8 @@
 .env
 teams_data.json
 initial_data.json
+teams_notebooks_data.json
+notebooks_sections.json
+# Added entries for all JSON files and .DS_Store
+*.json
+.DS_Store
