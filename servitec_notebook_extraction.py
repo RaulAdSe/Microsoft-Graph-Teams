@@ -15,10 +15,12 @@ load_dotenv()
 
 # Access token from .env
 ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
-# NEVER hardcode tokens in source code
 
+# NEVER hardcode tokens in source code
 if not ACCESS_TOKEN:
     print("Error: ACCESS_TOKEN not found in .env file")
+    print("Please create a .env file with your ACCESS_TOKEN or set it as an environment variable")
+    print("You can obtain a token from Microsoft Graph Explorer: https://developer.microsoft.com/en-us/graph/graph-explorer")
     sys.exit(1)
 
 headers = {
@@ -46,43 +48,27 @@ def debug_print(level, message, data=None):
             else:
                 print(data)
 
-def rate_limited_request(url, method="GET", retry_after=2):
-    """Make a request with rate limiting to handle API throttling"""
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            debug_print(1, f"Making request to: {url} (attempt {attempt+1}/{max_retries})")
+def make_request(url, method="GET"):
+    """Make a request to the Microsoft Graph API"""
+    try:
+        debug_print(1, f"Making request to: {url}")
+        if method == "GET":
+            response = requests.get(url, headers=headers)
+        else:
+            debug_print(1, f"Unsupported method: {method}")
+            return None
             
-            if method == "GET":
-                response = requests.get(url, headers=headers)
-            else:
-                debug_print(1, f"Unsupported method: {method}")
-                return None
-                
-            if response.status_code == 200:
-                data = response.json()
-                debug_print(2, f"Request successful, status code: {response.status_code}")
-                debug_print(3, "Raw response data:", data)
-                return data
-            elif response.status_code == 429:  # Too Many Requests
-                # Get retry-after header or use default
-                retry_after_val = int(response.headers.get('Retry-After', retry_after))
-                debug_print(0, f"⚠️ Rate limited! Waiting for {retry_after_val} seconds before retrying...")
-                time.sleep(retry_after_val)
-                # Increase backoff for next potential retry
-                retry_after = min(retry_after * 2, 60)  # Double the wait time, max 60 seconds
-            else:
-                debug_print(1, f"Error: {response.status_code} - {response.text}")
-                if "forbidden" in response.text.lower() or "unauthorized" in response.text.lower():
-                    debug_print(0, f"⚠️ Permission issue! Check that your token has the required permissions.")
-                return None
-                
-        except Exception as e:
-            debug_print(1, f"Exception making request: {str(e)}")
-            time.sleep(retry_after)
-    
-    debug_print(0, f"❌ Failed after {max_retries} attempts to access: {url}")
-    return None
+        if response.status_code == 200:
+            data = response.json()
+            debug_print(2, f"Request successful, status code: {response.status_code}")
+            debug_print(3, "Raw response data:", data)
+            return data
+        else:
+            debug_print(1, f"Error: {response.status_code} - {response.text}")
+            return None
+    except Exception as e:
+        debug_print(1, f"Exception making request: {str(e)}")
+        return None
 
 def make_request(url, method="GET"):
     """Make a request to the Microsoft Graph API"""
